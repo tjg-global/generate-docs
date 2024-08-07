@@ -1,0 +1,4 @@
+name: 'graphdoc'
+version: '1.0.0'
+profile: 'graphdoc'
+model-paths: ["models"]

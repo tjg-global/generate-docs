@@ -1,0 +1,5 @@
+/databases/.venv
+/src/dump_snowflake/__pycache__
+/build
+/src/dump_snowflake.egg-info
+/databases/*.log
