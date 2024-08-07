@@ -3,3 +3,5 @@
 /build
 /src/dump_snowflake.egg-info
 /databases/*.log
+/src/generate_docs/__pycache__
+/src/generate_docs.egg-info

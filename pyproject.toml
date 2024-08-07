@@ -7,8 +7,12 @@ name = "generate-docs"
 requires-python = ">=3.9"
 dynamic = ["version"]
 dependencies = [
-    'dbt-duckdb'
+    'dbt-duckdb',
+    'openpyxl'
 ]
 
 # Enables the usage of setuptools_scm
 [tool.setuptools_scm]
+
+[project.scripts]
+generate_docs = "generate_docs.generate_docs:command_line"
