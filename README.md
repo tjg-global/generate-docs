@@ -48,35 +48,40 @@ at all, including spaces etc.
 * The `Description` is an arbitrary text field [currently unused] which could be used,
 eg to populate the model description in the dbt project metadata
 
-| Object     | Group            | Tags                 | Description         |
-|------------|------------------|----------------------|---------------------|
-| Object A   | SomeGroup        | Tag X, Tag Y         |                     |
-| Object B   | OtherGroup       | Tag Z, Tag Y         | An Object which is B|
+| Object     | Group            | Tags                 | Description          |
+|------------|------------------|----------------------|----------------------|
+| Object A   | SomeGroup        | Tag X, Tag Y         |                      |
+| Object B   | OtherGroup       | Tag Z, Tag Y         | An Object which is B |
 
 *NB only the `Dependencies` sheet is needed: the `Objects` sheet is only
 presenting useful additional metadata to enhance the view*
 
 ## Usage
 
-With a spreadsheet as above called `Database.xlsx`:
+With a spreadsheet as above called, eg `Database.xlsx`:
 
-`generate_docs database.xlsx`
+`generate_docs /path/to/database.xlsx`
 
-This will generate a temporary dbt model, load with the data from the spreadsheet,
-and generate and launch the docs in a browser using standard dbt functionality.
+This will generate a temporary dbt project, populate its models using the data
+from the spreadsheet, and then generate and launch the docs in a browser using
+standard dbt functionality.
 
 ## Options
 
-At present the only command-line option is `--target-dirpath` which will override
-the use of the temporary directory area when generating the dbt project. This
-might be useful if you wanted, eg, to use the tool to do the spadework to generate
-the project and then to enhance it and maintain it by hand.
+At present the only additional command-line option is `--target-dirpath` which will
+override the use of the temporary directory area when generating the dbt project.
+This might be useful if you wanted, eg, to use the tool to do the spadework to
+generate the project and then to enhance it and maintain it by hand.
 
 ## Future Enhancements?
 
 - As it stands, this approach works quite well with, eg, the fairly large ~1,000
 models in the OOH DW. However, it might be interesting to partition those models
 into their dbt equivalents: seeds, sources, models, externals etc.
+
+- To keep the dbt model space smaller even before filtering, it might be useful to
+offer an option to generate only those models which, eg depended on a particular
+object or matched some tags.
 
 - Given a Snowflake database, you can use the `account_usage.object_dependencies` view
 to determine dependencies, including for stages, tasks etc. It might be interesting
