@@ -26,13 +26,11 @@ a sheet named `Objects`.
 The `Dependencies` sheet will have two columns, the first called `Object` and
 the second `Depends On`, eg:
 
-+------------+------------------+
 | Object     | Depends On       |
-+------------+------------------+
+|------------|------------------|
 | Object A   | Object B         |
-+------------+------------------+
+|------------|------------------|
 | Object B   |                  |
-+------------+------------------+
 
 The optional `Objects` sheet will have four columns: Object, Group, Tags, Description
 While the columns should always be their, their contents are optional except for `Object`
@@ -51,13 +49,11 @@ at all, including spaces etc.
 * The `Description` is an arbitrary text field [currently unused] which could be used,
 eg to populate the model description in the dbt project metadata
 
-+------------+------------------+----------------------+---------------------+
 | Object     | Group            | Tags                 | Description         |
-+------------+------------------+----------------------+---------------------+
+|------------|------------------|----------------------|---------------------|
 | Object A   | SomeGroup        | Tag X, Tag Y         |                     |
-+------------+------------------+----------------------+---------------------+
+|------------|------------------|----------------------|---------------------|
 | Object B   | OtherGroup       | Tag Z, Tag Y         | An Object which is B|
-+------------+------------------+----------------------+---------------------+
 
 *NB only the `Dependencies` sheet is needed: the `Objects` sheet is only
 presenting useful additional metadata to enhance the view*
