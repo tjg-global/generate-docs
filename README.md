@@ -29,7 +29,6 @@ the second `Depends On`, eg:
 | Object     | Depends On       |
 |------------|------------------|
 | Object A   | Object B         |
-|------------|------------------|
 | Object B   |                  |
 
 The optional `Objects` sheet will have four columns: Object, Group, Tags, Description
@@ -52,7 +51,6 @@ eg to populate the model description in the dbt project metadata
 | Object     | Group            | Tags                 | Description         |
 |------------|------------------|----------------------|---------------------|
 | Object A   | SomeGroup        | Tag X, Tag Y         |                     |
-|------------|------------------|----------------------|---------------------|
 | Object B   | OtherGroup       | Tag Z, Tag Y         | An Object which is B|
 
 *NB only the `Dependencies` sheet is needed: the `Objects` sheet is only
