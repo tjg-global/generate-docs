@@ -5,7 +5,6 @@ import argparse
 from collections import namedtuple, defaultdict
 import logging
 from pathlib import Path
-from pprint import pprint
 import re
 import shutil
 import subprocess
@@ -77,6 +76,8 @@ def data_from_spreadsheet(xlsx_filepath, sheet_name):
             yield DataTuple._make(c.value for c in row)
 
 def copy_dbt_layout(target_dirpath, dirname):
+    """Copy an empty dbt project into a temporary area
+    """
     target_dirpath = Path(target_dirpath or tempfile.mkdtemp())
     dbt_dirpath = target_dirpath / dirname
     logger.debug("Copying dbt layout to %s", dbt_dirpath)
@@ -84,6 +85,8 @@ def copy_dbt_layout(target_dirpath, dirname):
     return dbt_dirpath
 
 def get_objects_from_xlsx(xlsx_filepath):
+    """Read objects & dependencies from an Excel workbook
+    """
     #
     # Read dependencies first because they're needed
     # when building the objects
@@ -105,7 +108,7 @@ def get_objects_from_xlsx(xlsx_filepath):
         objects[dep_name] = {}
 
     #
-    # Update objects from an Objects sheet if it exists
+    # Update object metadata from an Objects sheet if it exists
     #
     for object in data_from_spreadsheet(xlsx_filepath, "Objects"):
         object_name = to_identifier(object.Object.strip())
@@ -118,13 +121,15 @@ def get_objects_from_xlsx(xlsx_filepath):
             tags=tags
         ))
 
+    #
+    # Add dependencies
+    #
     for object_name, depends_on in dependencies.items():
         print("%s depends on %s" % (object_name, depends_on))
         if depends_on:
             for dep in depends_on:
                 objects.setdefault(object_name, {}).setdefault('depends_on', set()).add(dep)
 
-    pprint(objects[object_name])
     return objects
 
 def model_contents(object):
@@ -150,7 +155,7 @@ def write_models(dbt_dirpath, objects):
     """
     models_dirpath = dbt_dirpath / "models"
     for object_name, object in objects.items():
-        #~ logger.info("Object: %s", object_name)
+        logger.info("Writing model for %s", object_name)
         group = (object.get('group') or "").strip() or "database"
         model_dirpath = models_dirpath / group
         model_dirpath.mkdir(exist_ok=True)
