@@ -42,7 +42,7 @@ def to_identifier(s):
 
     Remove non-alphanumerics and join back with underscores
     """
-    return "_".join(i for i in re.findall(r"\w*", s) if i)
+    return "_".join(i for i in re.findall(r"[a-zA-z0-9._]*", s) if i)
 
 def data_from_spreadsheet(xlsx_filepath, sheet_name):
     """Generate a namedtuple for each row of data
@@ -92,6 +92,8 @@ def get_objects_from_xlsx(xlsx_filepath):
     objects = {}
     for dep in data_from_spreadsheet(xlsx_filepath, "Dependencies"):
         object_name = to_identifier(dep.Object.strip())
+        if not dep.Depends_On:
+            continue
         dep_name = to_identifier(dep.Depends_On.strip())
         dependencies.setdefault(object_name, set()).add(dep_name)
         #
@@ -110,7 +112,7 @@ def get_objects_from_xlsx(xlsx_filepath):
         tags = set(t.strip() for t in (object.Tags or "").split(",") if t.strip())
         if object.Group:
             tags.add(object.Group)
-        objects[object_name].update(dict(
+        objects.setdefault(object_name, {}).update(dict(
             group=object.Group,
             description=object.Description,
             tags=tags
