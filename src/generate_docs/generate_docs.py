@@ -48,7 +48,7 @@ def data_from_spreadsheet(xlsx_filepath, sheet_name):
 
     The tuple field names are taken from the first row (adapted if needed
     to be valid identifier names). The tuple values are taken from the remaining
-    rows of the sheet.
+    non-empty rows of the sheet.
     """
     xlsx_filepath = Path(xlsx_filepath)
     wb = openpyxl.load_workbook(
@@ -58,9 +58,9 @@ def data_from_spreadsheet(xlsx_filepath, sheet_name):
     if sheet_name not in wb:
         logger.warn("Sheet %s not found in %s", sheet_name, xlsx_filepath)
         return
-
     ws = wb[sheet_name]
     irows = ws.iter_rows()
+
     #
     # Create a namedtuple from the header rows
     #
@@ -68,11 +68,11 @@ def data_from_spreadsheet(xlsx_filepath, sheet_name):
     tuple_name = to_identifier(xlsx_filepath.stem + " " + sheet_name)
     DataTuple = namedtuple(tuple_name, headers)
 
+    #
+    # Yield each data row as an instance of the namedtuple
+    #
     for row in irows:
-        #
-        # Skip entirely blank rows
-        #
-        if any(c.value for c in row):
+        if any(c.value for c in row): # Skip entirely blank rows
             yield DataTuple._make(c.value for c in row)
 
 def copy_dbt_layout(target_dirpath, dirname):
@@ -85,7 +85,7 @@ def copy_dbt_layout(target_dirpath, dirname):
     return dbt_dirpath
 
 def get_objects_from_xlsx(xlsx_filepath):
-    """Read objects & dependencies from an Excel workbook
+    """Read dependencies and (optionall) objects from an Excel workbook
     """
     #
     # Read dependencies first because they're needed
@@ -139,6 +139,7 @@ def model_contents(object):
     """
     for dep in object.get('depends_on', []):
         yield "-- depends on {{ref('%s')}}" % dep
+
     tags = object.get("tags", []) or []
     if tags:
         yield "{{config(tags=[%s])}}" % ",".join("'%s'" % t for t in tags)
@@ -162,11 +163,18 @@ def write_models(dbt_dirpath, objects):
         model_filepath = model_dirpath / (object_name + ".sql")
         write_one_model(model_filepath, object)
 
-def dbt_generate_docs_(dbt_dirpath):
+def dbt_run(dbt_root, *commands):
+    """Run a dbt command with standard parameters
+    """
+    dbt_command = ["dbt"] + list(commands) + ["--project-dir", dbt_root, "--profiles-dir", dbt_root]
+    subprocess.run(dbt_command, check=True)
+
+def dbt_generate_docs(dbt_dirpath):
     """Run the standard dbt docs commands against our generated directory
     """
-    subprocess.run(["dbt", "docs", "generate", "--project-dir=%s" % dbt_dirpath, "--profiles-dir=%s" % dbt_dirpath], check=True)
-    subprocess.run(["dbt", "docs", "serve", "--project-dir=%s" % dbt_dirpath, "--profiles-dir=%s" % dbt_dirpath], check=True)
+    dbt_root = str(dbt_dirpath)
+    dbt_run(dbt_root, "docs", "generate")
+    dbt_run(dbt_root, "docs", "serve")
 
 def run(args):
     """Merge command-line args with defaults and run core functions
@@ -180,7 +188,7 @@ def run(args):
     objects = get_objects_from_xlsx(xlsx_filepath)
     dbt_dirpath = copy_dbt_layout(args.target_dirpath, xlsx_filepath.stem)
     write_models(dbt_dirpath, objects)
-    dbt_generate_docs_(dbt_dirpath)
+    dbt_generate_docs(dbt_dirpath)
 
 def command_line():
     """Do basic command-line arg parsing and hand off to `run`
