@@ -15,9 +15,7 @@ import openpyxl
 
 HERE = Path(__file__).parent
 NAME = HERE.stem
-print(HERE)
-DBT_LAYOUT = HERE / ".." / "graphdoc"
-print(DBT_LAYOUT)
+DBT_LAYOUT = HERE / ".." / "dbt-template"
 
 logger = logging.getLogger(NAME)
 logger.setLevel(logging.DEBUG)
@@ -42,23 +40,41 @@ logger.addHandler(error_handler)
 def to_identifier(s):
     """Turn a string into a valid identifier
 
-    Replace any non-alphanumerics by underscores
+    Remove non-alphanumerics and join back with underscores
     """
     return "_".join(i for i in re.findall(r"\w*", s) if i)
 
 def data_from_spreadsheet(xlsx_filepath, sheet_name):
+    """Generate a namedtuple for each row of data
+
+    The tuple field names are taken from the first row (adapted if needed
+    to be valid identifier names). The tuple values are taken from the remaining
+    rows of the sheet.
+    """
     xlsx_filepath = Path(xlsx_filepath)
     wb = openpyxl.load_workbook(
         xlsx_filepath,
         data_only=True, read_only=True
     )
+    if sheet_name not in wb:
+        logger.warn("Sheet %s not found in %s", sheet_name, xlsx_filepath)
+        return
+
     ws = wb[sheet_name]
     irows = ws.iter_rows()
+    #
+    # Create a namedtuple from the header rows
+    #
     headers = [to_identifier(c.value) for c in next(irows)]
     tuple_name = to_identifier(xlsx_filepath.stem + " " + sheet_name)
-    datatuple = namedtuple(tuple_name, headers)
+    DataTuple = namedtuple(tuple_name, headers)
+
     for row in irows:
-        yield datatuple._make(c.value for c in row)
+        #
+        # Skip entirely blank rows
+        #
+        if any(c.value for c in row):
+            yield DataTuple._make(c.value for c in row)
 
 def copy_dbt_layout(target_dirpath, dirname):
     target_dirpath = Path(target_dirpath or tempfile.mkdtemp())
@@ -73,59 +89,75 @@ def get_objects_from_xlsx(xlsx_filepath):
     # when building the objects
     #
     dependencies = {}
-    for dep in data_from_spreadsheet(xlsx_filepath, "Dependencies"):
-        dependencies.setdefault(dep.Object, []).append(dep.Depends_On)
-
     objects = {}
+    for dep in data_from_spreadsheet(xlsx_filepath, "Dependencies"):
+        object_name = to_identifier(dep.Object.strip())
+        dep_name = to_identifier(dep.Depends_On.strip())
+        dependencies.setdefault(object_name, set()).add(dep_name)
+        #
+        # Create an object entry for anything which is listed as an
+        # object or as a dependency. (This is last is because might
+        # have deactivated objects which are still listed as deps)
+        #
+        objects[object_name] = {}
+        objects[dep_name] = {}
+
+    #
+    # Update objects from an Objects sheet if it exists
+    #
     for object in data_from_spreadsheet(xlsx_filepath, "Objects"):
+        object_name = to_identifier(object.Object.strip())
         tags = set(t.strip() for t in (object.Tags or "").split(",") if t.strip())
-        objects[object.Object] = dict(
+        if object.Group:
+            tags.add(object.Group)
+        objects[object_name].update(dict(
             group=object.Group,
             description=object.Description,
-            depends_on=dependencies.get(object.Object, []),
             tags=tags
-        )
+        ))
 
+    for object_name, depends_on in dependencies.items():
+        print("%s depends on %s" % (object_name, depends_on))
+        if depends_on:
+            for dep in depends_on:
+                objects.setdefault(object_name, {}).setdefault('depends_on', set()).add(dep)
+
+    pprint(objects[object_name])
     return objects
 
 def model_contents(object):
+    """Generate the contents of a fake model for this object
+
+    To have useful docs generated, we need dependencies and tags
+    """
     for dep in object.get('depends_on', []):
         yield "-- depends on {{ref('%s')}}" % dep
     tags = object.get("tags", []) or []
     if tags:
         yield "{{config(tags=[%s])}}" % ",".join("'%s'" % t for t in tags)
-    yield "SELECT 1 AS x"
 
 def write_one_model(model_filepath, object):
-    """
-    -- depends on {{ref('dbo.RAORDERS')}}
-    -- depends on {{ref('dbo.RAORDERSPOTS')}}
-    -- depends on {{ref('dbo.RASCHEDULEDSPOTS')}}
-    -- depends on {{ref('dbo.RASTATIONS')}}
-    -- depends on {{ref('dbo.RASPOTTYPES')}}
-    -- depends on {{ref('dbo.RADATASOURCES')}}
-    -- depends on {{ref('dbo.RACLIENTS')}}
-    -- depends on {{ref('dbo.RAORDERPRICINGLINES')}}
-    -- depends on {{ref('dbo.RAAIRTIME')}}
-    -- depends on {{ref('dbo.RAOFFAIRACTIVITIES')}}
-    --{{config(tags=['DWH_Daybook'])}}
-    select 1 as x
+    """Write the contents of the fake model to the appropriate file
     """
     with model_filepath.open("w") as f:
         for content in model_contents(object):
             f.write(content + "\n")
 
 def write_models(dbt_dirpath, objects):
+    """Write each object as a model with the correct dependencies
+    """
     models_dirpath = dbt_dirpath / "models"
     for object_name, object in objects.items():
+        #~ logger.info("Object: %s", object_name)
         group = (object.get('group') or "").strip() or "database"
         model_dirpath = models_dirpath / group
         model_dirpath.mkdir(exist_ok=True)
         model_filepath = model_dirpath / (object_name + ".sql")
-        print("Model:", model_filepath)
         write_one_model(model_filepath, object)
 
 def dbt_generate_docs_(dbt_dirpath):
+    """Run the standard dbt docs commands against our generated directory
+    """
     subprocess.run(["dbt", "docs", "generate", "--project-dir=%s" % dbt_dirpath, "--profiles-dir=%s" % dbt_dirpath], check=True)
     subprocess.run(["dbt", "docs", "serve", "--project-dir=%s" % dbt_dirpath, "--profiles-dir=%s" % dbt_dirpath], check=True)
 
