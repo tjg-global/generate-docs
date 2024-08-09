@@ -32,7 +32,7 @@ the second `Depends On`, eg:
 | Object B   |                  |
 
 The optional `Objects` sheet will have four columns: Object, Group, Tags, Description
-While the columns should always be their, their contents are optional except for `Object`
+While the columns should always be there, their contents are optional except for `Object`
 which must be there for the data to make sense.
 
 * The `Object` data should correspond to an object or dependency in the `Dependencies` data
