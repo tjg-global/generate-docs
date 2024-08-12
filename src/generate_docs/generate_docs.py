@@ -125,7 +125,6 @@ def get_objects_from_xlsx(xlsx_filepath):
     # Add dependencies
     #
     for object_name, depends_on in dependencies.items():
-        print("%s depends on %s" % (object_name, depends_on))
         if depends_on:
             for dep in depends_on:
                 objects.setdefault(object_name, {}).setdefault('depends_on', set()).add(dep)
