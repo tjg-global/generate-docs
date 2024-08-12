@@ -32,7 +32,7 @@ the second `Depends On`, eg:
 | Object B   |                  |
 
 The optional `Objects` sheet will have four columns: Object, Group, Tags, Description
-While the columns should always be their, their contents are optional except for `Object`
+While the columns should always be there, their contents are optional except for `Object`
 which must be there for the data to make sense.
 
 * The `Object` data should correspond to an object or dependency in the `Dependencies` data
@@ -77,11 +77,13 @@ generate the project and then to enhance it and maintain it by hand.
 
 - As it stands, this approach works quite well with, eg, the fairly large ~1,000
 models in the OOH DW. However, it might be interesting to partition those models
-into their dbt equivalents: seeds, sources, models, externals etc.
+into their dbt equivalents: seeds, sources, models, externals etc. These are styled
+differently in the viewer which could help distinguish different parts of the DW.
 
 - To keep the dbt model space smaller even before filtering, it might be useful to
 offer an option to generate only those models which, eg depended on a particular
-object or matched some tags.
+object or matched some tags. (However the dbt viewer is quite flexible and you
+can fairly quickly reduce your view to something manageable)
 
 - Given a Snowflake database, you can use the `account_usage.object_dependencies` view
 to determine dependencies, including for stages, tasks etc. It might be interesting
